@@ -9,53 +9,84 @@ import WidgetKit
 import SwiftUI
 
 struct Provider: TimelineProvider {
-    func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date(), emoji: "😀")
+
+// Placeholder is used as a placeholder when the widget is first displayed
+    func placeholder(in context: Context) -> NewsArticleEntry {
+//      Add some placeholder title and description, and get the current date
+      NewsArticleEntry(date: Date(), title: "Placeholder Title", description: "Placeholder description")
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
-        let entry = SimpleEntry(date: Date(), emoji: "😀")
+// Snapshot entry represents the current time and state
+    func getSnapshot(in context: Context, completion: @escaping (NewsArticleEntry) -> ()) {
+      let entry: NewsArticleEntry
+      if context.isPreview{
+        entry = placeholder(in: context)
+      }
+      else{
+        //      Get the data from the user defaults to display
+        let userDefaults = UserDefaults(suiteName: "group.com.glucofit.flutterhomewidget")
+        let title = userDefaults?.string(forKey: "headline_title") ?? "No Title Set"
+        let description = userDefaults?.string(forKey: "headline_description") ?? "No Description Set"
+        entry = NewsArticleEntry(date: Date(), title: title, description: description)
+      }
         completion(entry)
     }
 
+//    getTimeline is called for the current and optionally future times to update the widget
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
-        var entries: [SimpleEntry] = []
-
-        // 더 짧은 간격으로 여러 항목 생성 (15분 간격)
-        let currentDate = Date()
-        for minuteOffset in stride(from: 0, to: 60, by: 15) {
-            let entryDate = Calendar.current.date(byAdding: .minute, value: minuteOffset, to: currentDate)!
-            let entry = SimpleEntry(date: entryDate, emoji: "😀")
-            entries.append(entry)
-        }
-
-        // 15분 후에 새로운 타임라인 요청
-        let refreshDate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
-        let timeline = Timeline(entries: entries, policy: .after(refreshDate))
-        completion(timeline)
+//      This just uses the snapshot function you defined earlier
+      getSnapshot(in: context) { (entry) in
+// atEnd policy tells widgetkit to request a new entry after the date has passed
+        let timeline = Timeline(entries: [entry], policy: .atEnd)
+                  completion(timeline)
+              }
     }
-
-//    func relevances() async -> WidgetRelevances<Void> {
-//        // Generate a list containing the contexts this widget is relevant in.
-//    }
 }
 
-struct SimpleEntry: TimelineEntry {
+struct NewsArticleEntry: TimelineEntry {
     let date: Date
-    let emoji: String
+    let title: String
+    let description: String
 }
 
 struct HomeWidgetsEntryView : View {
     var entry: Provider.Entry
 
     var body: some View {
-        VStack {
-            Text("Time:")
-            Text(entry.date, style: .time)
-
-            Text("Emoji:")
-            Text(entry.emoji)
+        ZStack {
+            // 배경 그라데이션
+            LinearGradient(gradient: 
+                           Gradient(colors: [Color.blue.opacity(0.3), Color.purple.opacity(0.2)]), 
+                           startPoint: .top,
+                           endPoint: .bottomTrailing)
+            
+            VStack(alignment: .leading, spacing: 10) {
+                // 제목 영역
+                Text(entry.title)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.primary)
+                    .lineLimit(2)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 12)
+                
+                // 구분선
+                Rectangle()
+                    .frame(height: 1)
+                    .foregroundColor(.gray.opacity(0.3))
+                    .padding(.horizontal, 12)
+                
+                // 설명 영역
+                Text(entry.description)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .lineLimit(3)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 12)
+                
+                Spacer()
+            }
         }
+        .cornerRadius(15)
     }
 }
 
@@ -70,17 +101,9 @@ struct HomeWidgets: Widget {
             } else {
                 HomeWidgetsEntryView(entry: entry)
                     .padding()
-                    .background()
             }
         }
-        .configurationDisplayName("My Widget")
-        .description("This is an example widget.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .contentMarginsDisabled()
+        .supportedFamilies([.systemSmall])
     }
-}
-
-#Preview(as: .systemSmall) {
-    HomeWidgets()
-} timeline: {
-    SimpleEntry(date: .now, emoji: "😀")
 }
