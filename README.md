@@ -2,9 +2,9 @@
 
 Flutter에서 iOS 홈 위젯을 구현한 프로젝트입니다.
 
-![Flutter Home Widget Preview](assets/flutter_home_widget.png)
+![image](https://github.com/user-attachments/assets/4222c7b0-4cad-4715-8e0f-edbd5ce23468)
 
-> 참고: 위젯 스크린샷이 프로젝트 루트에 저장되어 있습니다.
+
 
 ## 기능
 
